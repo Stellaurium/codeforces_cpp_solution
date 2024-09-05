@@ -5,12 +5,9 @@ set(CMAKE_CXX_COMPILER g++)
 
 project(codeforces)
 
-
 set(PROJECT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
-# 临时变量 为了子cmake继承使用 在子cmake内部再配置保存位置
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 
-# 寻找库 在构建的时候再链接 (因为有的子项目可能不用)
 find_package(fmt REQUIRED)
 find_package(Catch2 REQUIRED)
 find_package(spdlog REQUIRED)
@@ -21,35 +18,51 @@ include_directories(${PROJECT_INCLUDE_DIRS})
 set(EXCLUDED_DIRECTORIES)
 #=======================================================================
 
+# 定义用于递归处理子目录的函数
+function(add_subprojects ROOT_DIR)
+    file(GLOB SUB_PROJECTS "${ROOT_DIR}/*")
+    foreach (SUB_PROJECT ${SUB_PROJECTS})
+        if (IS_DIRECTORY ${SUB_PROJECT})
+            # 获取文件夹名称
+            get_filename_component(LAST_PART ${SUB_PROJECT} NAME)
+            if (NOT LAST_PART IN_LIST EXCLUDED_DIRECTORIES)
+                # 设置子项目名称
+                set(PROJECT_NAME ${LAST_PART})
+                project(${PROJECT_NAME})
 
+                # 获取所有cpp源文件 (现在cpp文件直接在子项目根目录)
+                file(GLOB_RECURSE SOURCE_FILES ${SUB_PROJECT}/*.cpp)
 
-# 获取所有子项目的目录
-file(GLOB SUB_PROJECTS "${PROJECT_SOURCE_DIR}/projects/*")
+                # 设置输出目录
+                if (${ROOT_DIR} MATCHES "problem_set")
+                    set(OUTPUT_DIR ${EXECUTABLE_OUTPUT_PATH}/problem_set)
+                else ()
+                    # 获取contest的上一级目录名
+                    get_filename_component(PARENT_DIR ${SUB_PROJECT} DIRECTORY)
+                    get_filename_component(CONTEST_NAME ${PARENT_DIR} NAME)
+                    set(OUTPUT_DIR ${EXECUTABLE_OUTPUT_PATH}/contest/${CONTEST_NAME})
+                endif ()
 
-# 遍历每个子项目并添加
-foreach(SUB_PROJECT ${SUB_PROJECTS})
-    if(IS_DIRECTORY ${SUB_PROJECT})
-        # 获取最后一个/后的名称 方便使用 EXCLUDED_DIRECTORIES 进行排除
-        get_filename_component(LAST_PART ${SUB_PROJECT} NAME)
-        if(NOT LAST_PART IN_LIST EXCLUDED_DIRECTORIES)
-            # 设置子项目的名称（使用文件夹名称）
-            set(PROJECT_NAME ${LAST_PART})
-            project(${PROJECT_NAME})
+                # 为子项目添加可执行文件
+                add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+                set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
-            # 如果有，设置sub project的私有include的文件夹
-            set(SUBPROJECT_INCLUDE_DIRS ${SUB_PROJECT}/include)
-            include_directories(${SUBPROJECT_INCLUDE_DIRS})
+                # 添加依赖库
+                target_link_libraries(${PROJECT_NAME} fmt::fmt)
+                target_link_libraries(${PROJECT_NAME} Catch2::Catch2WithMain)
+                target_link_libraries(${PROJECT_NAME} spdlog::spdlog)
+            endif ()
+        endif ()
+    endforeach ()
+endfunction()
 
-            # 收集所有.cpp源文件
-            file(GLOB_RECURSE SOURCE_FILES ${SUB_PROJECT}/src/*.cpp)
+# 处理 problem_set 目录
+add_subprojects(${PROJECT_SOURCE_DIR}/problem_set)
 
-            # 为每个子项目添加一个可执行文件
-            add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
-            # 添加依赖
-            target_link_libraries(${PROJECT_NAME} fmt::fmt)
-            target_link_libraries(${PROJECT_NAME} Catch2::Catch2WithMain)
-            target_link_libraries(${PROJECT_NAME} spdlog::spdlog)
-        endif()
-    endif()
-endforeach()
+# 处理 contest 目录 (逐个比赛的文件夹)
+file(GLOB CONTESTS "${PROJECT_SOURCE_DIR}/contest/*")
+foreach (CONTEST ${CONTESTS})
+    if (IS_DIRECTORY ${CONTEST})
+        add_subprojects(${CONTEST})
+    endif ()
+endforeach ()
