@@ -13,3 +13,11 @@ problem set 是codeforces的problem set的题目
 然后代码会找到build/bin目录下的可执行文件
 同时运行代码中的test文件夹下的测试用例
 
+命令行的执行步骤
+1. 创建build (如果有可以删除干净) 然后配置conan 以及 cmake
+   1. conan install .. --build=missing -s build_type=Debug
+   2. cmake .. -DCMAKE_TOOLCHAIN_FILE=./Debug/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles"
+2. 编译 cmake --build . or make
+3. 使用python运行测试样例 
+   1. 如果回到根目录 python test.py contest/cf_971_div4/E
+   2. 如果在build目录 python ../test.py ../contest/cf_971_div4/E
