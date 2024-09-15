@@ -25,7 +25,9 @@ signed main() {
 }
 
 constexpr const char *narek = "narek";
-int max_value[1000 + 1][5];
+//
+int max_value[2][5];
+constexpr int kINF = numeric_limits<int>::max() / 2;
 
 bool is_narek(char c) { return c == 'n' | c == 'a' | c == 'r' | c == 'e' | c == 'k'; }
 
@@ -61,24 +63,32 @@ void solve() {
     // 初始化最小值
     for (int j = 1; j < 5; j++) {
         // 不能设置为最小的，这样会溢出为正数
-        max_value[0][j] = numeric_limits<int>::min() / 2;
+        max_value[0][j] = -kINF;
     }
+    max_value[0][0] = 0;
 
     for (int i = 0; i < n; i++) {
         // 至少是前面的值，让后面不需要一直跟前面max
         for (int j = 0; j < 5; j++) {
-            max_value[i + 1][j] = max_value[i][j];
+            max_value[1][j] = max_value[0][j];
         }
         for (int j = 0; j < 5; j++) {
+            if (max_value[0][j] == -kINF)
+                continue;
+
             auto [next_index, score] = simulate(strs[i], j);
             // 这里max的两边都是以next_index结尾的，所以可以不减去narek多余的部分
-            max_value[i + 1][next_index] = max(max_value[i][j] + score, max_value[i + 1][next_index]);
+            max_value[1][next_index] = max(max_value[0][j] + score, max_value[1][next_index]);
+        }
+        for (int j = 0; j < 5; j++) {
+            max_value[0][j] = max_value[1][j];
         }
     }
 
+    // 一定需要这个，如果仅仅考虑j的，相当于只有恰好完成的才算
     int ret = 0;
     for (int j = 0; j < 5; j++) {
-        ret = max(ret, max_value[n][j] - 2 * j);
+        ret = max(ret, max_value[1][j] - 2 * j);
     }
     cout << ret << endl;
 }
