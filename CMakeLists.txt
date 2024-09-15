@@ -41,8 +41,9 @@ function(add_subprojects ROOT_DIR)
                     get_filename_component(PARENT_DIR ${SUB_PROJECT} DIRECTORY)
                     get_filename_component(CONTEST_NAME ${PARENT_DIR} NAME)
                     set(OUTPUT_DIR ${EXECUTABLE_OUTPUT_PATH}/contest/${CONTEST_NAME})
+                    # 防止重名
+                    set(PROJECT_NAME ${CONTEST_NAME}_${PROJECT_NAME})
                 endif ()
-
                 # 为子项目添加可执行文件
                 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
                 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})

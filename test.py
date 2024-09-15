@@ -23,8 +23,25 @@ def find_executable(project_root, target_dir):
     # 计算相对路径，得到目标文件的相对位置
     relative_path = os.path.relpath(target_dir, project_root)
 
+    # 拆分相对路径
+    parts = relative_path.split(os.sep)
+
+    # `file_name` 是路径的最后一个部分
+    file_name = parts[-1]
+    # `contest` 是倒数第二个部分
+    contest = parts[-2]
+    # `relative_path_head` 是路径的其余部分
+    relative_path_head = os.sep.join(parts[:-2])
+
+    # 构建新的文件名
+    executable_name = f"{contest}_{file_name}"
+
+    # 拼接新的相对路径
+    new_relative_path = os.path.join(relative_path_head, contest,
+                                     executable_name)
+
     # 构建 build/bin 下的路径
-    executable = os.path.join(project_root, 'build', 'bin', relative_path)
+    executable = os.path.join(project_root, 'build', 'bin', new_relative_path)
 
     # 检查该路径是否是可执行文件
     if os.path.isfile(executable):
